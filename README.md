@@ -56,19 +56,49 @@ Paste a sample of your app's CLI or Streamlit output here so a reader can see wh
 
 ## 🧪 Testing PawPal+
 
-```bash
-# Run the full test suite:
-pytest
+Install pytest once (`pip install pytest`), then run the suite from the project root:
 
-# Run with coverage:
-pytest --cov
+```bash
+python -m pytest -v
 ```
+
+The 16 tests in [tests/test_pawpal.py](tests/test_pawpal.py) use a fixed date, so results do not depend on the day they run. They cover:
+
+- **Sorting:** tasks added out of order come back chronologically, date is compared before time, the original queue is not modified, and an empty queue returns `[]`.
+- **Recurrence:** completing a daily task creates a pending task due the next day and links it to the same pet, care plan and scheduler. Weekly tasks recur after 7 days, one-off tasks do not recur, completing twice creates only one next task, month boundaries work, and an unknown task id raises `ValueError`.
+- **Conflict detection:** identical start times are flagged for the same pet and for different pets. Times one minute apart, completed tasks and an empty queue produce no warnings.
+- **Empty pet:** a pet with no tasks returns empty results and does not crash.
 
 Sample test output:
 
 ```
-# Paste your pytest output here
+============================= test session starts =============================
+platform win32 -- Python 3.12.2, pytest-9.1.1, pluggy-1.7.0 -- C:\Users\vhugo\Downloads\ai110-module2show-pawpal-starter\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\vhugo\Downloads\ai110-module2show-pawpal-starter
+collecting ... collected 16 items
+
+tests/test_pawpal.py::test_sort_by_time_returns_chronological_order PASSED [  6%]
+tests/test_pawpal.py::test_sort_by_time_orders_by_date_before_time PASSED [ 12%]
+tests/test_pawpal.py::test_sort_by_time_does_not_mutate_queue PASSED     [ 18%]
+tests/test_pawpal.py::test_sort_by_time_with_no_tasks_returns_empty_list PASSED [ 25%]
+tests/test_pawpal.py::test_completing_daily_task_creates_next_day_task PASSED [ 31%]
+tests/test_pawpal.py::test_completing_weekly_task_creates_task_seven_days_later PASSED [ 37%]
+tests/test_pawpal.py::test_one_off_task_does_not_recur PASSED            [ 43%]
+tests/test_pawpal.py::test_completing_a_task_twice_does_not_duplicate_recurrence PASSED [ 50%]
+tests/test_pawpal.py::test_recurrence_crosses_month_boundary PASSED      [ 56%]
+tests/test_pawpal.py::test_mark_complete_unknown_task_raises PASSED      [ 62%]
+tests/test_pawpal.py::test_detect_conflicts_flags_same_time_same_pet PASSED [ 68%]
+tests/test_pawpal.py::test_detect_conflicts_flags_same_time_different_pets PASSED [ 75%]
+tests/test_pawpal.py::test_detect_conflicts_ignores_different_times PASSED [ 81%]
+tests/test_pawpal.py::test_detect_conflicts_ignores_completed_tasks PASSED [ 87%]
+tests/test_pawpal.py::test_detect_conflicts_with_no_tasks_returns_empty_list PASSED [ 93%]
+tests/test_pawpal.py::test_pet_with_no_tasks_has_nothing_due_today PASSED [100%]
+
+============================= 16 passed in 0.05s ==============================
 ```
+
+**Confidence level: ★★★★☆ (4/5).** All 16 tests pass, and they cover the three core scheduling behaviors (sorting, recurrence, conflict detection) including their main edge cases. One star is held back because some code has no tests: `filter_tasks`, the owner/pet/care plan linking and `remove_pet`, the "due today" methods (including whether completed tasks should appear), and the Streamlit UI in `app.py`. Conflict detection also only catches identical start times, not overlapping durations.
 
 ## 📐 Smarter Scheduling
 
