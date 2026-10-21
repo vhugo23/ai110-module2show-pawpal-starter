@@ -17,8 +17,9 @@ CarePlan: Stores the final schedule, including scheduled and skipped tasks and e
 **b. Design changes**
 
 - Did your design change during implementation?
+Yes
 - If yes, describe at least one change and why you made it.
-
+I adjusted the design so that ownership and task assignment are validated carefully rather than letting the object drift out of sync.
 ---
 
 ## 2. Scheduling Logic and Tradeoffs
@@ -26,13 +27,15 @@ CarePlan: Stores the final schedule, including scheduled and skipped tasks and e
 **a. Constraints and priorities**
 
 - What constraints does your scheduler consider (for example: time, priority, preferences)?
+Time, completion status and recurrence
 - How did you decide which constraints mattered most?
-
+Time is first because a pet-care routine is mostly about doing the right thing at the right time. Recurrence came second because it removes the most repeated manual work
 **b. Tradeoffs**
 
 - Describe one tradeoff your scheduler makes.
+My conflict detection only flags tasks that start exactly at the smae time, it doesn't catch overlapping ranges.
 - Why is that tradeoff reasonable for this scenario?
-
+This tradeoff is reasonable here because a household has only a handful of tasks per day, and most clashes happen when two things are deliberately booked for the same time.
 ---
 
 ## 3. AI Collaboration

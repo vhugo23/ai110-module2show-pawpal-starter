@@ -72,14 +72,64 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
+All scheduling logic lives in [pawpal_system.py](pawpal_system.py) and is demonstrated end to end by `python main.py`.
 
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Task sorting | `Scheduler.sort_by_time()` | Chronological order (date, then time) |
+| Filtering | `Scheduler.filter_tasks()` | By pet name and/or completion status |
+| Conflict handling | `Scheduler.detect_conflicts()` | Warns when 2+ pending tasks share a start time |
+| Recurring tasks | `Task.create_next_occurrence()`, `Scheduler.mark_task_complete()` | Daily (+1 day) and weekly (+7 days) |
+
+### Sorting
+
+`Scheduler.sort_by_time(tasks=None)` returns tasks in chronological order using
+`sorted(tasks, key=lambda task: task.due_date_time)`. It sorts the scheduler's
+`task_queue` unless you pass your own list, and it returns a new list rather than
+modifying the original.
+
+### Filtering
+
+`Scheduler.filter_tasks(tasks=None, pet_name=None, completed=None)` narrows a task
+list by pet name (case-insensitive), completion status, or both. Leaving a
+parameter as `None` skips that filter. The result can be passed straight to
+`sort_by_time`:
+
+```python
+scheduler.sort_by_time(scheduler.filter_tasks(pet_name="Buddy", completed=False))
+```
+
+### Conflict detection
+
+`Scheduler.detect_conflicts(tasks=None)` uses a lightweight strategy: it groups
+pending tasks by exact start time in a single pass (O(n)) and returns a list of
+warning strings, one per time slot with two or more tasks. Each warning names the
+tasks and pets involved and says whether the clash is for the same pet or
+different pets. It never raises, so the caller decides how to show the warnings.
+Completed tasks are ignored.
+
+```
+WARNING: 2 tasks at 2026-10-20 14:00 (same pet): 'Nail trim' (Buddy), 'Brush teeth' (Buddy)
+```
+
+**Limitation:** only identical start times are flagged. Tasks have no duration
+yet, so partially overlapping tasks are not detected.
+
+### Recurring tasks
+
+Tasks with frequency `"daily"` or `"weekly"` (case-insensitive) regenerate when
+completed.
+
+- `Task.create_next_occurrence()` builds the next task by adding a `timedelta`
+  (1 day or 1 week, defined in `RECURRENCE_INTERVALS`) to the current due time,
+  and returns `None` for any other frequency.
+- `Task.mark_complete()` marks the task done and returns the next occurrence.
+- `Scheduler.mark_task_complete(task_id)` is the method to call from the app. It
+  completes the task, attaches the new one to the same pet and care plan, and adds
+  it to the scheduler queue. Calling it again on a completed task does nothing.
+
+The next due date is based on the previous due date, not the completion time, so a
+late completion does not shift the routine.
 
 ## 📸 Demo Walkthrough
 
