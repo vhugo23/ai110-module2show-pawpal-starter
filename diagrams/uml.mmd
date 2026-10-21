@@ -1,15 +1,97 @@
 classDiagram
-    %% Replace the placeholders below with your actual classes, attributes, methods, and relationships.
-    %% Keep this file updated so it matches your final implementation.
+    %% Final design: matches pawpal_system.py (snake_case names as in the code).
 
-    class ClassName {
-        +type attribute
-        +method() returnType
+    class Owner {
+        +str owner_id
+        +str name
+        +str email
+        +str phone
+        +List~Pet~ pets
+        +add_pet(pet: Pet) None
+        +remove_pet(pet_id: str) None
+        +update_profile(name: str, email: str, phone: str) None
+        +view_care_plan(pet_id: str) CarePlan
     }
 
-    class AnotherClass {
-        +type attribute
-        +method() returnType
+    class Pet {
+        +str pet_id
+        +str name
+        +str species
+        +str breed
+        +int age
+        +float weight
+        +str health_notes
+        +Owner owner
+        +CarePlan care_plan
+        +List~Task~ tasks
+        +add_task(task: Task) None
+        +update_health_status(notes: str) None
+        +get_tasks_due_today() List~Task~
     }
 
-    ClassName --> AnotherClass : relationship
+    class Task {
+        +str task_id
+        +str title
+        +str description
+        +str task_type
+        +datetime due_date_time
+        +str frequency
+        +Pet pet
+        +CarePlan care_plan
+        +bool is_completed
+        +mark_complete() Task
+        +create_next_occurrence() Task
+        +reschedule(new_date_time: datetime) None
+        +get_status() str
+    }
+
+    class Scheduler {
+        +str schedule_id
+        +List~Task~ task_queue
+        +schedule_task(task: Task) None
+        +remove_task(task_id: str) None
+        +mark_task_complete(task_id: str) Task
+        +generate_daily_schedule(owner: Owner) List~Task~
+        +sort_by_time(tasks: List~Task~) List~Task~
+        +filter_tasks(tasks: List~Task~, pet_name: str, completed: bool) List~Task~
+        +detect_conflicts(tasks: List~Task~) List~str~
+        +check_due_tasks() List~Task~
+        +send_reminder(task: Task) None
+    }
+
+    class CarePlan {
+        +str care_plan_id
+        +Pet pet
+        +Owner owner
+        +date start_date
+        +date end_date
+        +str notes
+        +List~Task~ tasks
+        +add_task(task: Task) None
+        +remove_task(task_id: str) None
+        +get_active_tasks() List~Task~
+        +update_plan(notes: str) None
+    }
+
+    class RECURRENCE_INTERVALS {
+        <<constant>>
+        daily: 1 day
+        weekly: 7 days
+    }
+
+    %% Ownership: each side keeps a back-reference (owner.pets <-> pet.owner, etc.)
+    Owner "1" o-- "0..*" Pet : owns
+    Pet "1" o-- "0..1" CarePlan : has
+    Pet "1" o-- "0..*" Task : has
+    CarePlan "1" o-- "0..*" Task : groups
+    CarePlan --> Owner : owner
+    CarePlan --> Pet : pet
+
+    %% Scheduler holds references only; it requires each task to have a pet and care plan
+    Scheduler "1" o-- "0..*" Task : task_queue
+    Scheduler ..> Owner : reads pets and tasks
+    Scheduler ..> CarePlan : attaches next occurrence
+
+    %% Recurrence: completing a daily/weekly task builds a new Task
+    Task ..> Task : creates next occurrence
+    Task ..> RECURRENCE_INTERVALS : looks up interval

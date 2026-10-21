@@ -1,26 +1,18 @@
 # PawPal+ (Module 2 Project)
 
-You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
+**PawPal+** is a Streamlit app that helps a busy pet owner stay consistent with pet care. The owner adds pets, schedules care tasks (walks, feeding, meds, grooming), and sees a time-sorted schedule with warnings when two tasks clash. Daily and weekly tasks regenerate automatically when completed.
 
-## Scenario
+## System overview
 
-A busy pet owner needs help staying consistent with pet care. They want an assistant that can:
+All logic lives in [pawpal_system.py](pawpal_system.py). The design is in [diagrams/uml.mmd](diagrams/uml.mmd) (Mermaid source, same as `uml_final.mmd`).
 
-- Track pet care tasks (walks, feeding, meds, enrichment, grooming, etc.)
-- Consider constraints (time available, priority, owner preferences)
-- Produce a daily plan and explain why it chose that plan
-
-Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
-
-## What you will build
-
-Your final app should:
-
-- Let a user enter basic owner + pet info
-- Let a user add/edit tasks (duration + priority at minimum)
-- Generate a daily schedule/plan based on constraints and priorities
-- Display the plan clearly (and ideally explain the reasoning)
-- Include tests for the most important scheduling behaviors
+| Class | Responsibility |
+|-------|----------------|
+| `Owner` | Owner details and the list of pets. Adds and removes pets and refuses a pet that already belongs to another owner. |
+| `Pet` | Pet details, health notes and its tasks. Adds tasks and lists those due today. |
+| `Task` | One care activity with a title, due date and time, frequency and completion status. Completing it returns the next occurrence for daily and weekly tasks. |
+| `CarePlan` | Groups a pet's tasks and rejects tasks that belong to another pet. |
+| `Scheduler` | Works across all pets: schedules tasks, sorts, filters, detects conflicts, completes recurring tasks and builds the daily schedule. |
 
 ## Getting started
 
@@ -30,6 +22,14 @@ Your final app should:
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+```
+
+### Run the app, demo and tests
+
+```bash
+streamlit run app.py       # the Streamlit UI
+python main.py             # CLI demo of sorting, filtering, recurrence and conflicts
+python -m pytest -v        # the test suite
 ```
 
 ### Suggested workflow
@@ -42,17 +42,16 @@ pip install -r requirements.txt
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
 
-## 🖥️ Sample Output
+## ✨ Features
 
-Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
-
-```
-# e.g.:
-# Daily plan for Biscuit (Golden Retriever):
-#   08:00 — Morning walk (30 min) [priority: high]
-#   09:00 — Feeding (10 min) [priority: high]
-#   ...
-```
+- **Sorting by time:** `sort_by_time` orders tasks by date, then time, and returns a new list without changing the queue.
+- **Filtering:** `filter_tasks` narrows tasks by pet name (case-insensitive), completion status, or both.
+- **Conflict warnings:** `detect_conflicts` groups pending tasks by exact start time in one pass and returns a warning for each slot with two or more tasks, for the same pet or for different pets. It never raises, and it ignores completed tasks. Overlapping durations are not detected.
+- **Daily and weekly recurrence:** completing a daily task creates the next one 1 day later, and a weekly task 7 days later. The next due time is based on the previous due time, not on when the task was completed. One-off and other frequencies do not repeat.
+- **Duplicate-safe completion:** completing a task twice does not create a second next occurrence.
+- **Linked data:** adding a task to a pet also adds it to the pet's care plan. A task cannot be scheduled without a pet and a care plan, and a task cannot be added to another pet's care plan.
+- **Daily schedule:** `generate_daily_schedule` lists every task due today for an owner's pets.
+- **Streamlit UI:** all of the above are available in `app.py`.
 
 ## 🧪 Testing PawPal+
 
@@ -163,12 +162,88 @@ late completion does not shift the routine.
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+Start the app with `streamlit run app.py`.
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+### Main UI features
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+- **Add a pet:** enter name, species, breed, age and weight. Each pet gets its own care plan.
+- **Add a task:** pick a pet, a title, a date, a time and how often it repeats (once, daily or weekly).
+- **Build Schedule:** a table of every task, sorted by date and time, with filters for pet and status (all, pending or completed).
+- **Conflict warnings:** shown as soon as a task is saved and again beside the schedule, with one warning per clashing time slot.
+- **Mark complete:** completes a task. A daily or weekly task shows when its next occurrence is scheduled.
+
+### Example workflow
+
+1. Add a pet, for example Mochi the dog.
+2. Add a task "Morning walk" for today at 07:00, repeating daily.
+3. Add a second task, "Feed", at the same time. A warning appears saying two tasks share that slot.
+4. Look at the schedule table. Tasks are in time order, and the warning names both tasks.
+5. Change the "Show status" filter to Pending to see only what is left to do.
+6. Select "Morning walk" and press **Mark complete**. The table shows it as completed, and a message says the next walk is tomorrow at 07:00.
+
+### Scheduler behaviors shown
+
+- **Sorting:** tasks added out of order are displayed chronologically.
+- **Filtering:** by pet name and by completion status, alone or together.
+- **Conflict warnings:** two pending tasks at the same start time are flagged, for the same pet or for different pets.
+- **Recurrence:** daily tasks reappear after 1 day, weekly tasks after 7 days, and one-off tasks do not repeat.
+
+### Sample CLI output
+
+`python main.py` runs these behaviors without the UI:
+
+```
+As added (out of order):
+  10-20 18:30  Evening walk   Buddy  Pending
+  10-20 07:45  Breakfast      Luna   Pending
+  10-20 12:00  Vet meds       Buddy  Completed
+  10-20 09:05  Play session   Luna   Pending
+  10-20 07:00  Morning walk   Buddy  Completed
+
+Sorted by time:
+  10-20 07:00  Morning walk   Buddy  Completed
+  10-20 07:45  Breakfast      Luna   Pending
+  10-20 09:05  Play session   Luna   Pending
+  10-20 12:00  Vet meds       Buddy  Completed
+  10-20 18:30  Evening walk   Buddy  Pending
+
+Buddy's tasks (sorted):
+  10-20 07:00  Morning walk   Buddy  Completed
+  10-20 12:00  Vet meds       Buddy  Completed
+  10-20 18:30  Evening walk   Buddy  Pending
+
+Pending tasks (sorted):
+  10-20 07:45  Breakfast      Luna   Pending
+  10-20 09:05  Play session   Luna   Pending
+  10-20 18:30  Evening walk   Buddy  Pending
+
+Completed tasks:
+  10-20 12:00  Vet meds       Buddy  Completed
+  10-20 07:00  Morning walk   Buddy  Completed
+
+Luna + pending:
+  10-20 07:45  Breakfast      Luna   Pending
+  10-20 09:05  Play session   Luna   Pending
+
+Completing recurring tasks...
+  T-001 done -> next: T-001@20261021 due Wed 2026-10-21 18:30
+  T-002 done -> next: T-002@20261021 due Wed 2026-10-21 07:45
+  T-006 done -> next: T-006@20261027 due Tue 2026-10-27 10:00
+  T-007 (one-off) done -> next: None
+
+Pending after recurrence:
+  10-20 09:05  Play session   Luna   Pending
+  10-21 07:45  Breakfast      Luna   Pending
+  10-21 18:30  Evening walk   Buddy  Pending
+  10-27 10:00  Grooming       Luna   Pending
+
+Buddy's pet.tasks count: 5 | care plan active: 1
+
+Conflict check (before adding clashes): none
+
+Conflict check (after adding clashes):
+  WARNING: 2 tasks at 2026-10-20 14:00 (same pet): 'Nail trim' (Buddy), 'Brush teeth' (Buddy)
+  WARNING: 2 tasks at 2026-10-20 16:30 (different pets): 'Litter box' (Luna), 'Training' (Buddy)
+```
+
+The dates are the day the script ran; yours will show today's date.
