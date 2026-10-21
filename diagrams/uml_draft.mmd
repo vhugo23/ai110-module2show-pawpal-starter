@@ -1,0 +1,72 @@
+classDiagram
+    class Owner {
+        +ownerId: string
+        +name: string
+        +email: string
+        +phone: string
+        +pets: List[Pet]
+        +addPet(pet: Pet) void
+        +removePet(petId: string) void
+        +updateProfile(name: string, email: string, phone: string) void
+        +viewCarePlan(petId: string) CarePlan
+    }
+
+    class Pet {
+        +petId: string
+        +name: string
+        +species: string
+        +breed: string
+        +age: int
+        +weight: float
+        +healthNotes: string
+        +owner: Owner
+        +carePlan: CarePlan
+        +tasks: List[Task]
+        +addTask(task: Task) void
+        +updateHealthStatus(notes: string) void
+        +getTasksDueToday() List[Task]
+    }
+
+    class Task {
+        +taskId: string
+        +title: string
+        +description: string
+        +taskType: string
+        +dueDateTime: DateTime
+        +frequency: string
+        +isCompleted: bool
+        +pet: Pet
+        +carePlan: CarePlan
+        +markComplete() void
+        +reschedule(newDateTime: DateTime) void
+        +getStatus() string
+    }
+
+    class Scheduler {
+        +scheduleId: string
+        +taskQueue: List[Task]
+        +scheduleTask(task: Task) void
+        +generateDailySchedule(owner: Owner) List[Task]
+        +checkDueTasks() List[Task]
+        +sendReminder(task: Task) void
+    }
+
+    class CarePlan {
+        +carePlanId: string
+        +pet: Pet
+        +owner: Owner
+        +tasks: List[Task]
+        +startDate: Date
+        +endDate: Date
+        +notes: string
+        +addTask(task: Task) void
+        +removeTask(taskId: string) void
+        +getActiveTasks() List[Task]
+        +updatePlan(notes: string) void
+    }
+
+    Owner "1" --> "0..*" Pet
+    Pet "1" --> "1" CarePlan
+    Pet "1" --> "0..*" Task
+    CarePlan "1" --> "0..*" Task
+    Scheduler "1" --> "0..*" Task

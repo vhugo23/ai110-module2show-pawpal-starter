@@ -5,7 +5,14 @@
 **a. Initial design**
 
 - Briefly describe your initial UML design.
+My initial UML design represents the main components of PawlPal+ and how they interact, showing the relationships between owners, pets, and care tasks.
+
 - What classes did you include, and what responsibilities did you assign to each?
+Owner: Stores owner information and manages their pets and availability.
+Pet: Stores pet information and keeps track of its care tasks.
+Task: Represents a care activity, including its duration, priority, scheduled time, and recurrence.
+Scheduler: Sorts tasks, detects scheduling conflicts, and generates an organized daily schedule.
+CarePlan: Stores the final schedule, including scheduled and skipped tasks and explanations for scheduling decisions.
 
 **b. Design changes**
 
